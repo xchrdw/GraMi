@@ -51,15 +51,25 @@ public class Searcher<NodeType, EdgeType>
 	
 	public Searcher(String path, int freqThreshold,int shortestDistance) throws Exception
 	{
-		this.freqThreshold= new IntFrequency(freqThreshold);
-		this.distanceThreshold=shortestDistance;
 		singleGraph = new Graph(1,freqThreshold);
 		singleGraph.loadFromFile(path);
+		setup(freqThreshold, shortestDistance);
+	}
+
+	public Searcher(Graph graph, int freqThreshold,int shortestDistance) throws Exception
+	{
+		singleGraph = graph;
+		setup(freqThreshold, shortestDistance);
+	}
+
+	private void setup(int freqThreshold, int shortestDistance){
+		this.freqThreshold= new IntFrequency(freqThreshold);
+		this.distanceThreshold=shortestDistance;
 		sortedFrequentLabels=singleGraph.getSortedFreqLabels();
 		if(distanceThreshold==1)
 		{
 			singleGraph.printFreqNodes();
-        	singleGraph.setShortestPaths_1hop();
+			singleGraph.setShortestPaths_1hop();
 		}
 		else
 		{
@@ -69,7 +79,7 @@ public class Searcher<NodeType, EdgeType>
 			singleGraph.setShortestPaths(d, shortestDistance);
 		}
 	}
-	
+
 	public void initialize()
 	{
 		initials= new TreeMap<GSpanEdge<NodeType, EdgeType>, DFSCode<NodeType, EdgeType>>(new gEdgeComparator<NodeType, EdgeType>());

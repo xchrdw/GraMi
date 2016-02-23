@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import com.grami.undirected_patterns.utilities.CombinationGenerator;
@@ -245,7 +246,183 @@ public class Graph
 		
 		bin.close();		
 	}
-	
+
+	public static class Node {
+		int index;
+		int label;
+
+		public Node(int index, int label) {
+			this.index = index;
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			final StringBuilder sb = new StringBuilder("Node{");
+			sb.append("index=").append(index);
+			sb.append(", label=").append(label);
+			sb.append('}');
+			return sb.toString();
+		}
+	}
+
+	public static class Edge {
+		int index1;
+		int index2;
+		double label;
+
+		public Edge(int index1, int index2, double label) {
+			this.index1 = index1;
+			this.index2 = index2;
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			final StringBuilder sb = new StringBuilder("Edge{");
+			sb.append("index1=").append(index1);
+			sb.append(", index2=").append(index2);
+			sb.append(", label=").append(label);
+			sb.append('}');
+			return sb.toString();
+		}
+	}
+
+	public void loadFromData(List<Node> nodesIn, List<Edge> edgesIn) throws ParseException {
+		// read graph from rows
+		// nodes
+		int numberOfNodes=0;
+		if(Settings.multipleAtts)
+		{
+
+			HashMap<String, Integer> multiAttLabels= new HashMap<String, Integer>();
+			int multiAttLabelsCounter=100;
+
+			int counter=0;
+			boolean isNewNode;
+			for (Node node : nodesIn) {
+				isNewNode=false;
+
+				if(node.index==counter)
+				{
+					counter++;
+					isNewNode=true;
+				}
+				if (node.index != counter - 1) {
+					throw new ParseException("The node list is not sorted", node.index);
+				}
+
+				myNode n;
+				if(isNewNode)
+				{
+					addNode(node.label);
+					ArrayList<Integer> nLabels= new ArrayList<Integer>();
+					nLabels.add(node.label);
+					n = new myNode(numberOfNodes, nLabels);
+					nodes.add(n);
+					numberOfNodes++;
+				}
+				else
+				{
+					n=nodes.get(node.index);
+					//now add the new label combinations!!
+					ArrayList<Integer> prevLabels=n.getLabel();
+					ArrayList<String> newCombs=CombinationGenerator.getNewCombinations(prevLabels, node.label);
+					for (int j = 0; j < newCombs.size(); j++)
+					{
+						String newComb=newCombs.get(j);
+						Integer labelValue= multiAttLabels.get(newComb);
+						if(labelValue==null)
+						{
+							labelValue=multiAttLabelsCounter;
+							multiAttLabels.put(newComb, labelValue);
+							multiAttLabelsCounter++;
+						}
+						//now add the node label info !!!
+						HashMap<Integer,myNode> tmp = nodesByLabel.get(labelValue);
+						if(tmp==null)
+						{
+							tmp = new HashMap<Integer,myNode>();
+							nodesByLabel.put(labelValue, tmp);
+						}
+						tmp.put(n.getID(), n);
+
+					}
+					//now the node label alone
+					n.addLabel(node.label);
+				}
+
+				HashMap<Integer,myNode> tmp = nodesByLabel.get(node.label);
+				if(tmp==null)
+				{
+					tmp = new HashMap<Integer,myNode>();
+					nodesByLabel.put(node.label, tmp);
+				}
+				tmp.put(n.getID(), n);
+
+			}
+			nodeCount=numberOfNodes;
+
+			if(Settings.multipleAtts)
+				for (Iterator<Entry<String, Integer>> iterator = multiAttLabels.entrySet().iterator(); iterator.hasNext();)
+				{
+					Entry<String, Integer> entry = iterator.next();
+				}
+		}
+		else
+		{
+			int i = -1;
+			for (Node node : nodesIn) {
+				if (node.index != i - 1) {
+					throw new ParseException("The node list is not sorted", i);
+				}
+				i++;
+
+				addNode(node.label);
+				ArrayList<Integer> nLabels= new ArrayList<Integer>();
+				nLabels.add(node.label);
+				myNode n = new myNode(numberOfNodes, nLabels);
+				nodes.add(n);
+				HashMap<Integer,myNode> tmp = nodesByLabel.get(node.label);
+				if(tmp==null)
+				{
+					tmp = new HashMap<Integer,myNode>();
+					nodesByLabel.put(node.label, tmp);
+				}
+				tmp.put(n.getID(), n);
+				numberOfNodes++;
+			}
+			nodeCount=numberOfNodes;
+		}
+
+		// edges
+		for (Edge edge : edgesIn) {
+			addEdge(edge.index1, edge.index2, edge.label);
+		}
+
+		//now prune the infrequent nodes
+
+		for (Iterator<  java.util.Map.Entry< Integer, HashMap<Integer,myNode> > >  it= nodesByLabel.entrySet().iterator(); it.hasNext();)
+		{
+			java.util.Map.Entry< Integer, HashMap<Integer,myNode> > ar =  it.next();
+			if(ar.getValue().size()>=freqThreshold)
+			{
+				sortedFreqLabelsWithFreq.add(new Point(ar.getKey(),ar.getValue().size()));
+				freqNodesByLabel.put(ar.getKey(), ar.getValue());
+			}
+		}
+
+		Collections.sort(sortedFreqLabelsWithFreq, new freqComparator());
+
+		for (int j = 0; j < sortedFreqLabelsWithFreq.size(); j++)
+		{
+			sortedFreqLabels.add(sortedFreqLabelsWithFreq.get(j).x);
+			System.out.println("index: "+j+" Label: "+sortedFreqLabels.get(j) );
+
+		}
+
+	}
+
 	public void printFreqNodes()
 	{
 		for (Iterator<  java.util.Map.Entry< Integer, HashMap<Integer,myNode> > >  it= freqNodesByLabel.entrySet().iterator(); it.hasNext();) 
