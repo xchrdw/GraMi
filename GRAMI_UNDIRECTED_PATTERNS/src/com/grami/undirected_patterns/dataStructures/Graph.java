@@ -371,9 +371,9 @@ public class Graph
 		}
 		else
 		{
-			int i = -1;
+			int i = 0;
 			for (Node node : nodesIn) {
-				if (node.index != i - 1) {
+				if (node.index != i) {
 					throw new ParseException("The node list is not sorted", i);
 				}
 				i++;
